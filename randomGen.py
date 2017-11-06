@@ -6,27 +6,45 @@ from scipy.stats import norm
 
 
 class RandomGen(object):
-    # Values that may be returned by next_num()
-    _random_nums = []
-    # Probability of the occurrence of random_nums
-    _probabilities = []
-
     def __init__(self, nums, prob):
-        RandomGen._random_nums = nums
-        RandomGen._probabilities = prob
+        self._random_nums = nums
+        self._probabilities = prob
+        if not self._validate_prob():
+            raise ValueError('The input probabilities are not valid')
+        self._distribution = list(self.running_sum(self._probabilities))
+        self._distribution[-1] = 1
+
+    def _validate_prob(self):
+        if not np.isclose(sum(self._probabilities), 1, atol=1e-05):
+            return False
+        if len(self._random_nums) != len(self._probabilities):
+            return False
+        return True
 
     def next_num(self):
         uni_rand = rand.random()
-        for idx, prob in enumerate(self.running_sum(RandomGen._probabilities)):
-            if uni_rand < prob:
-                return RandomGen._random_nums[idx]
-        return RandomGen._random_nums[-1]
+        idx = self.binary_search(self._distribution, 0, len(self._distribution) - 1, uni_rand)
+        if idx is not None:
+            return self._random_nums[idx]
+        raise ValueError('The returned index from binary search is {}'.format(idx))
 
     def running_sum(self, a):
         result = 0
         for i in a:
             result += i
             yield result
+
+    def binary_search(self, arr, start, end, item):
+        if start > end or len(arr) == 0:
+            return None
+        mid = (start + end) / 2
+        if item >= arr[mid]:
+            return self.binary_search(arr, mid + 1, end, item)
+        else:
+            if mid == 0 or item >= arr[mid - 1]:
+                return mid
+            else:
+                return self.binary_search(arr, start, mid - 1, item)
 
 
 class RandomGenTests(ut.TestCase):
@@ -58,12 +76,8 @@ class RandomGenTests(ut.TestCase):
         data = self._get_experiment_data(n)
         r_k = np.mean([(data[i] - self._expected_value) * (data[i + k] - self._expected_value) for i in range(n - k)])
         print(r_k)
-        i_mean = np.mean([data[i] for i in range(n - k)])
-        ik_mean = np.mean([data[i + k] for i in range(n - k)])
-        r_k1 = np.mean([data[i] * data[i + k] for i in range(n - k)]) \
-               - self._expected_value * (i_mean + ik_mean) \
-               + self._expected_value ** 2
-        print(i_mean, ik_mean, r_k1)
+        r_k1 = np.mean([float(data[i] * data[i + k]) for i in range(n - k)]) - float(self._expected_value ** 2)
+        print(r_k1)
         return r_k
 
     def _get_confidence_bound(self, alpha, scale):
@@ -81,8 +95,10 @@ class RandomGenTests(ut.TestCase):
     def test_independence(self):
         alpha = 0.05
         n = 100
-        k = 1
+        k = 2
         std = (float(self._variance) / (n - k)) ** (.5)
         auto_cvar = self._get_auto_covariance(n, k)
         conf_bnd = self._get_confidence_bound(alpha, std)
         self.assertTrue((auto_cvar - conf_bnd) * (auto_cvar + conf_bnd) < 0)
+
+
