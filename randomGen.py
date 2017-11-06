@@ -58,8 +58,12 @@ class RandomGenTests(ut.TestCase):
         data = self._get_experiment_data(n)
         r_k = np.mean([(data[i] - self._expected_value) * (data[i + k] - self._expected_value) for i in range(n - k)])
         print(r_k)
-        r_k1 = np.mean([float(data[i]*data[i+k]) for i in range(n-k)]) - float(self._expected_value**2)
-        print(r_k1)
+        i_mean = np.mean([data[i] for i in range(n - k)])
+        ik_mean = np.mean([data[i + k] for i in range(n - k)])
+        r_k1 = np.mean([data[i] * data[i + k] for i in range(n - k)]) \
+               - self._expected_value * (i_mean + ik_mean) \
+               + self._expected_value ** 2
+        print(i_mean, ik_mean, r_k1)
         return r_k
 
     def _get_confidence_bound(self, alpha, scale):
@@ -82,4 +86,3 @@ class RandomGenTests(ut.TestCase):
         auto_cvar = self._get_auto_covariance(n, k)
         conf_bnd = self._get_confidence_bound(alpha, std)
         self.assertTrue((auto_cvar - conf_bnd) * (auto_cvar + conf_bnd) < 0)
-
