@@ -38,3 +38,7 @@ def normalize_data(data):
     std = np.std(data)
     return [(d - mean) / std for d in data]
 
+
+def scale_up(data, val):
+    val = abs(val)
+    return [d + val for d in data]

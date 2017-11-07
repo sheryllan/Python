@@ -12,6 +12,7 @@ from statsmodels.tools.eval_measures import bic
 from statsmodels.tsa.arima_model import ARMAResults
 import preprocessing as pre
 import os
+import scipy.stats as stats
 
 
 def unit_root_test(data, confidence_level=0.9):
@@ -118,11 +119,19 @@ plt.plot(result_arma.fittedvalues[interval: interval+100], color='red')
 plt.show()
 """
 
+
+
+def chi2_test(obs1, obs2):
+    obs = np.array([obs1, obs2])
+    chi2, p, dof, expected = stats.chi2_contingency(obs)
+    return chi2 < p
+
+
 def chunks(list, n):
     l = len(list)
     return (list[i:i + n if i + n < l else l] for i in xrange(0, l, n))
 
-for i in range(3):
+"""for i in xrange(3):
     file_path = pre.get_all_data_files()[i]
     recv, exch = pre.get_time_series(file_path)
     size = 5000
@@ -141,5 +150,31 @@ for i in range(3):
 
     corr = np.mean([cointegration_test(e, r) for e, r in zip(chunks(recv, size), chunks(exch, size))])
     print 'correlation:{}'.format(corr)
+
+"""
+
+
+for i in xrange(4, 5):
+    file_path = pre.get_all_data_files()[i]
+    recv, exch = pre.get_time_series(file_path)
+    recv = pre.normalize_data(recv)
+    exch = pre.normalize_data(exch)
+    #scale = max(abs(min(recv)), abs(min(exch))) + 1
+    #recv = pre.scale_up(recv, scale)
+    #exch = pre.scale_up(exch, scale)
+    #lag = 12
+    #recv = pd.rolling_mean(recv, lag)
+    #exch = pd.rolling_mean(exch, lag)
+    #df = pd.DataFrame({'recv': recv, 'exch': exch})
+    #recv = pd.rolling_mean(df['recv'], lag)[lag:]
+    #exch = pd.rolling_mean(df['exch'], lag)[lag:]
+
+    """plt.plot(recv[12:])
+    plt.plot(exch[12:])
+    plt.show()"""
+
+    res = [y - x for y, x in zip(recv, exch)]
+    adf = ts.adfuller(res[:5000])
+    print adf
 
 
