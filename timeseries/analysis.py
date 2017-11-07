@@ -14,6 +14,7 @@ import preprocessing as pre
 import os
 
 
+
 def unit_root_test(data, confidence_level=0.9):
     result = ts.adfuller(data, regression='ct')
     confidence_level = (1 - confidence_level) * 100
@@ -37,18 +38,6 @@ def cointegration_test(y, x):
     result = ts.coint(x, y)
     return result[0] < result[1]
 
-
-"""filepath = r"/Users/sheryllan/Python/timeseries/FDAX-F-DEC2017-20170920-060000.csv"
-data_frame = pd.read_csv(filepath, index_col=False, dtype={'recv': str, 'exch': str}, usecols=['recv', 'exch'])
-
-recv = [try_parse_long(d) for d in data_frame.recv]
-exch = [try_parse_long(d) for d in data_frame.exch]
-recv, exch = zip(*[(r, e) for r, e in zip(recv, exch) if not (math.isnan(r) or math.isnan(e))])"""
-
-"""pr = plt.plot(recv[:1000], label='recv')
-pe = plt.plot(exch[:1000], label='exch')
-plt.legend(handles=(pr, pe))
-plt.show()"""
 
 
 
@@ -118,11 +107,19 @@ plt.plot(result_arma.fittedvalues[interval: interval+100], color='red')
 plt.show()
 """
 
+
+
+def chi2_test(obs1, obs2):
+    obs = np.array([obs1, obs2])
+    chi2, p, dof, expected = stats.chi2_contingency(obs)
+    return chi2 < p
+
+
 def chunks(list, n):
     l = len(list)
     return (list[i:i + n if i + n < l else l] for i in xrange(0, l, n))
 
-for i in range(3):
+"""for i in xrange(3):
     file_path = pre.get_all_data_files()[i]
     recv, exch = pre.get_time_series(file_path)
     size = 5000
@@ -141,5 +138,45 @@ for i in range(3):
 
     corr = np.mean([cointegration_test(e, r) for e, r in zip(chunks(recv, size), chunks(exch, size))])
     print 'correlation:{}'.format(corr)
+
+"""
+
+
+for i in xrange(10):
+    file_path = pre.get_all_data_files()[i]
+    recv, exch = pre.get_time_series(file_path)
+    recv = pre.normalize_data(recv)
+    exch = pre.normalize_data(exch)
+    #scale = max(abs(min(recv)), abs(min(exch))) + 1
+    #recv = pre.scale_up(recv, scale)
+    #exch = pre.scale_up(exch, scale)
+    #lag = 12
+    #recv = pd.rolling_mean(recv, lag)
+    #exch = pd.rolling_mean(exch, lag)
+    #df = pd.DataFrame({'recv': recv, 'exch': exch})
+    #recv = pd.rolling_mean(df['recv'], lag)[lag:]
+    #exch = pd.rolling_mean(df['exch'], lag)[lag:]
+
+    """plt.plot(recv)
+    plt.plot(exch)
+    plt.show()"""
+
+    """est = sm.OLS(exch, recv).fit()
+    print est.params
+    rrs = sum([(y - x)**2 for y, x in zip(recv, exch)])
+    rrs_fit = est.ssr
+    print (rrs - rrs_fit)/rrs_fit
+    print"""
+
+
+
+    """size = 5000
+    is_stationary = True
+    res = [y - x for y, x in zip(recv, exch)]
+    for c in chunks(res, size):
+        is_stationary = is_stationary and not unit_root_test(c)
+
+    print 'adf test for normalized residual(recv - exch) {}'.format('passed' if is_stationary else 'failed')"""
+
 
 
