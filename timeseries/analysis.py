@@ -12,7 +12,7 @@ from statsmodels.tools.eval_measures import bic
 from statsmodels.tsa.arima_model import ARMAResults
 import preprocessing as pre
 import os
-import scipy.stats as stats
+
 
 
 def unit_root_test(data, confidence_level=0.9):
@@ -38,18 +38,6 @@ def cointegration_test(y, x):
     result = ts.coint(x, y)
     return result[0] < result[1]
 
-
-"""filepath = r"/Users/sheryllan/Python/timeseries/FDAX-F-DEC2017-20170920-060000.csv"
-data_frame = pd.read_csv(filepath, index_col=False, dtype={'recv': str, 'exch': str}, usecols=['recv', 'exch'])
-
-recv = [try_parse_long(d) for d in data_frame.recv]
-exch = [try_parse_long(d) for d in data_frame.exch]
-recv, exch = zip(*[(r, e) for r, e in zip(recv, exch) if not (math.isnan(r) or math.isnan(e))])"""
-
-"""pr = plt.plot(recv[:1000], label='recv')
-pe = plt.plot(exch[:1000], label='exch')
-plt.legend(handles=(pr, pe))
-plt.show()"""
 
 
 
@@ -154,7 +142,7 @@ def chunks(list, n):
 """
 
 
-for i in xrange(4, 5):
+for i in xrange(10):
     file_path = pre.get_all_data_files()[i]
     recv, exch = pre.get_time_series(file_path)
     recv = pre.normalize_data(recv)
@@ -169,12 +157,26 @@ for i in xrange(4, 5):
     #recv = pd.rolling_mean(df['recv'], lag)[lag:]
     #exch = pd.rolling_mean(df['exch'], lag)[lag:]
 
-    """plt.plot(recv[12:])
-    plt.plot(exch[12:])
+    """plt.plot(recv)
+    plt.plot(exch)
     plt.show()"""
 
+    """est = sm.OLS(exch, recv).fit()
+    print est.params
+    rrs = sum([(y - x)**2 for y, x in zip(recv, exch)])
+    rrs_fit = est.ssr
+    print (rrs - rrs_fit)/rrs_fit
+    print"""
+
+
+
+    """size = 5000
+    is_stationary = True
     res = [y - x for y, x in zip(recv, exch)]
-    adf = ts.adfuller(res[:5000])
-    print adf
+    for c in chunks(res, size):
+        is_stationary = is_stationary and not unit_root_test(c)
+
+    print 'adf test for normalized residual(recv - exch) {}'.format('passed' if is_stationary else 'failed')"""
+
 
 

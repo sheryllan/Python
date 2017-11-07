@@ -1,9 +1,12 @@
 import preprocessing as pre
-import analysis as al
 import statsmodels.api as sm
 import numpy as np
+import pandas as pd
 from statsmodels.tsa.arima_model import ARMA
 from statsmodels.tsa.arima_model import ARMAResults
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+import math
 
 
 def get_ARMA_result(train, p, q):
@@ -23,7 +26,6 @@ def find_best_pq(train):
                 q = j
     return (p, q, min_bic)
 
-def validate():
     
 
 def cross_validation():
@@ -40,4 +42,49 @@ def cross_validation():
 
 
 
+def detect(expected, actual, lag):
+    h = 200000
+    l = 20000
+    residuals = [y - x for y, x in zip(actual, expected)]
+    mean = np.mean(residuals)
+    std = np.std(residuals)
+    threshold = std
+    df = pd.DataFrame({'resid': residuals})
+    mv_avg = df.rolling(lag, center=False).mean()['resid'].tolist()
+    mv_var = df.rolling(lag, center=False).var()['resid'].tolist()
+
+    avg_delta = threshold / lag
+    var_delta = 2 * (threshold**2 / lag**2 + 1)
+
+    for i in xrange(h, h + l):
+        if math.isnan(mv_avg[i]) or math.isnan(mv_var[i]):
+            if abs(residuals[i]) > threshold:
+                yield i
+
+        if i > 1:
+            if abs(residuals[i] - mean) > threshold or abs(mv_avg[i] - mean) > avg_delta or mv_var[i] > mv_var[i - 1] + var_delta:
+                yield i
+
+    """for i in xrange(h+lag, h+l+lag):
+        t_test = stats.ttest_ind(expected[i-lag:i], actual[i-lag:i])
+        if t_test.statistic > t_test.pvalue:
+            print i-h
+            yield i"""
+
+
+
+
+
+file_path = pre.get_all_data_files()[0]
+recv, exch = pre.get_time_series(file_path)
+recv = pre.normalize_data(recv)
+exch = pre.normalize_data(exch)
+
+xs, ys = zip(*[(x - 200000, exch[x]) for x in detect(recv, exch, 10)])
+plt.plot(recv[200000:220000])
+plt.plot(exch[200000:220000])
+plt.plot(xs, ys, 'ro', color='black')
+plt.show()
+
+plt.show()
 
