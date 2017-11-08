@@ -55,13 +55,19 @@ def cross_validation(fnums, params):
         best_threshold = best[0]
         best_lag = best[1]
 
-        #anomalies = detect_anomaly(recv, exch, best_lag, best_threshold)
-        anomaly_free_indices = list(remove_anomaly(recv, exch, best_lag, best_threshold))
+        anomaly_indices = list(detect_anomaly(recv, exch, best_lag, best_threshold))
+        """anomaly_free_indices = [ind for ind in xrange(len(recv)) if ind not in anomaly_indices]
         expected = [recv[index] for index in anomaly_free_indices]
         actual = [exch[index] for index in anomaly_free_indices]
         t_test = stats.ttest_ind(expected, actual)
-        print t_test[0] < t_test[1]
-        #print t_test.statistic < t_test.pvalue
+        print t_test[0] < t_test[1]"""
+
+        anomalies = [exch[ind] for ind in anomaly_indices]
+        non_anomalies = [recv[ind] for ind in anomaly_indices]
+        t_test = stats.ttest_ind(non_anomalies, anomalies, equal_var=False)
+
+        print t_test
+        print t_test.statistic >= t_test.pvalue
 
 
 
@@ -93,8 +99,8 @@ def remove_anomaly(expected, actual, lag, threshold):
 
 
 def detect_anomaly(expected, actual, lag, threshold):
-    h = 200000
-    l = 20000
+    h = 0
+    l = len(actual)
     residuals = [y - x for y, x in zip(actual, expected)]
     mean = np.mean(residuals)
     std = np.std(residuals)
@@ -124,20 +130,21 @@ def detect_anomaly(expected, actual, lag, threshold):
 
 
 
-"""file_path = pre.get_all_data_files()[0]
+file_path = pre.get_all_data_files()[3]
 recv, exch = pre.get_time_series(file_path)
 recv = pre.normalize_data(recv)
 exch = pre.normalize_data(exch)
 
-xs, ys = zip(*[(x - 200000, exch[x]) for x in detect_anomaly(recv, exch, 6, 0.5)])
-plt.plot(recv[200000:220000])
-plt.plot(exch[200000:220000])
+xs, ys = zip(*[(x, exch[x]) for x in detect_anomaly(recv, exch, 10, 2)])
+plt.plot(recv)
+plt.plot(exch)
 plt.plot(xs, ys, 'ro', color='black')
-plt.show()"""
+plt.show()
 
 #print find_best_params([4])
 
 a = [[3.8194700411831127e-08, 0.5, 6], [2.9043829563732082e-05, 0.5, 17], [1.4181636918767581e-09, 0.5, 8], [1.3564396985124244e-10, 0.5, 5], [1.5822187251236839e-07, 0.5, 9]]
 
-cross_validation(xrange(5), a)
+#cross_validation(xrange(5), a)
+#print get_weighted_best_params(a)
 
