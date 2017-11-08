@@ -14,7 +14,6 @@ import preprocessing as pre
 import os
 
 
-
 def unit_root_test(data, confidence_level=0.9):
     result = ts.adfuller(data, regression='ct')
     confidence_level = (1 - confidence_level) * 100
@@ -37,9 +36,6 @@ def correlation_test(ds1, ds2):
 def cointegration_test(y, x):
     result = ts.coint(x, y)
     return result[0] < result[1]
-
-
-
 
 
 """print correlation_test(recv[:1000], exch[:1000])
@@ -81,8 +77,6 @@ plt.tight_layout()
 
 plt.show()"""
 
-
-
 """model = arma.ARMA(est.resid[h:h + l], order=(p, 1, q))
 result_arma = model.fit(disp=-1)
 resid = est.resid[h:h + l] - result_arma.fittedvalues
@@ -90,8 +84,6 @@ rss = sum(resid ** 2)
 print result_arma.summary()
 bayesian = l* math.log(rss/l) + (p+q+1)*math.log(l)
 print bayesian"""
-
-
 
 """plt.plot(est.resid[h:h+500])
 plt.plot(result_arma.fittedvalues[:500], color='red')
@@ -108,16 +100,16 @@ plt.show()
 """
 
 
-
 def chi2_test(obs1, obs2):
     obs = np.array([obs1, obs2])
     chi2, p, dof, expected = stats.chi2_contingency(obs)
     return chi2 < p
 
 
-def chunks(list, n):
-    l = len(list)
-    return (list[i:i + n if i + n < l else l] for i in xrange(0, l, n))
+def chunks(stream, step):
+    n = len(stream)
+    return (stream[i:i + step if i + step < n else n] for i in xrange(0, n, step))
+
 
 """for i in xrange(3):
     file_path = pre.get_all_data_files()[i]
@@ -141,21 +133,20 @@ def chunks(list, n):
 
 """
 
-
 for i in xrange(10):
     file_path = pre.get_all_data_files()[i]
     recv, exch = pre.get_time_series(file_path)
     recv = pre.normalize_data(recv)
     exch = pre.normalize_data(exch)
-    #scale = max(abs(min(recv)), abs(min(exch))) + 1
-    #recv = pre.scale_up(recv, scale)
-    #exch = pre.scale_up(exch, scale)
-    #lag = 12
-    #recv = pd.rolling_mean(recv, lag)
-    #exch = pd.rolling_mean(exch, lag)
-    #df = pd.DataFrame({'recv': recv, 'exch': exch})
-    #recv = pd.rolling_mean(df['recv'], lag)[lag:]
-    #exch = pd.rolling_mean(df['exch'], lag)[lag:]
+    # scale = max(abs(min(recv)), abs(min(exch))) + 1
+    # recv = pre.scale_up(recv, scale)
+    # exch = pre.scale_up(exch, scale)
+    # lag = 12
+    # recv = pd.rolling_mean(recv, lag)
+    # exch = pd.rolling_mean(exch, lag)
+    # df = pd.DataFrame({'recv': recv, 'exch': exch})
+    # recv = pd.rolling_mean(df['recv'], lag)[lag:]
+    # exch = pd.rolling_mean(df['exch'], lag)[lag:]
 
     """plt.plot(recv)
     plt.plot(exch)
@@ -168,8 +159,6 @@ for i in xrange(10):
     print (rrs - rrs_fit)/rrs_fit
     print"""
 
-
-
     """size = 5000
     is_stationary = True
     res = [y - x for y, x in zip(recv, exch)]
@@ -177,6 +166,3 @@ for i in xrange(10):
         is_stationary = is_stationary and not unit_root_test(c)
 
     print 'adf test for normalized residual(recv - exch) {}'.format('passed' if is_stationary else 'failed')"""
-
-
-

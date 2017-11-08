@@ -1,0 +1,26 @@
+
+
+First let's assume the two time series are non-stationary and of I(1). 
+# For simplicity, the test for integration(unit root test) is neglected here, because a cusory preprocessing of the data with plot exhibits a clear trend and strong correlation between the two time seires.
+
+I'd like to do the cointegration test between the two time series, which is finding a linear combination between them that yields a I(0) process with stationary residual eplison
+
+
+The question is divided into 2 parts:
+	1. Time series behaviour hypothesis and feature analysis
+	2. Anomaly detection, model validation and hypothesis verification 
+
+1.1 Data preprocessing 
+The module 'preprocessin.py' is dedicated to this purpose. It is used by the other scripts for loading and preprocessing of the data.
+The steps are:
+	- clean up the invalid data 
+	- plot sample data for cusory observation
+	- normalize the data 
+A preliminary view from the plot identifies the two time series are:
+	- trending
+	- moving in the same direction(correlated)
+	- have some scaling offset
+	- exch series 
+
+1.2 Hypotheses and assumptions
+According to the features observed, it is reasonable to make assuption that the two TS are non-stationary and of I(1).
