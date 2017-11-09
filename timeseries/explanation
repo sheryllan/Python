@@ -1,9 +1,10 @@
 
+Please run the setup.py script to set up the environment and download all the packages.
 
-First let's assume the two time series are non-stationary and of I(1). 
-# For simplicity, the test for integration(unit root test) is neglected here, because a cusory preprocessing of the data with plot exhibits a clear trend and strong correlation between the two time seires.
+1. Run analysis.py for analysis of the time series, printing results 
+2. Run validation.py for determining the anomaly detection model parameters. It takes long time.
+3. Run anomalytest.py for testing with the test data set, using the optimized parameters found in step 2.
 
-I'd like to do the cointegration test between the two time series, which is finding a linear combination between them that yields a I(0) process with stationary residual eplison
 
 
 The question is divided into 2 parts:
@@ -22,5 +23,70 @@ A preliminary view from the plot identifies the two time series are:
 	- have some scaling offset
 	- exch series 
 
-1.2 Hypotheses and assumptions
-According to the features observed, it is reasonable to make assuption that the two TS are non-stationary and of I(1).
+1.2 Analytical Test and Assumptions
+According to the features observed, it is reasonable to make assuption that the two TS are non-stationary and of I(1). 
+3 tests are done upon the raw data:
+	- unit root test used for confirm the non-stationarity
+	- cointegration test for determining whether the TS are cointegrated, that the spread between them is mean reverting
+	-  correlation test to see if the TS trend in the same way
+
+These tests are done to the first half of the training data files, and the second half left for testing. Results show a strong positive correlation(near to 1), clear cointegration, and non-stationarity - possibly with a trend.
+
+In addition to the tests, observations over the plot of the TS indicates that despite an offset in the magnitude they have almost the identical shape, except TS 'exch' has many steep flips on top of its overall much smoother curve, which presumably suggests anomaly.
+
+To further verify this idea, I did a normalization to the raw data and produced plots on it. The plot exhibits a good match, as shown in the produced figure, the two shapes almost overlapping. This gives me a fair ground to model the 'recv' as the trainning expected data and 'exch' as the actual data containing errors. 
+
+Because the TS are cointegrated, there exists a linear relationship between them to reduce it to stationary. Taking the 'recv' itself as the fitted model and comparing the residuals with the that obtained through OLS, I found very little difference. So I can just take the data itself as the regression fitting with good precision, without having to do one. This is an experimental process checking out the interim values returned in the code.
+
+In the light of this, I define the anomaly as the real divergence of 'exch' from 'recv', and make an assumption that by removing the anomaly data points I would arrive at two almost equal TS with some level of confidence. This assumption would be tested in the next part.
+
+
+2.1 Detection scheme
+A visual observation of the anomaly shows that the it is usually an abrupt transient change over time. I ran some tests over the residuals and for seasonality and didn't find any. And the residuals don't persistently conform to normal distribution.
+
+This limits my choice of detection model, as it should be very responsive being able to identify anomaly within a split of second. The classic ARMA model doesn't apply well in this situation, because its MA part would lag the detection. 
+
+I applied several methods and it turns out the simple works best.
+
+2.1.1 Absolute difference and moving variance
+The original model defines a threshold for the absolute value difference of the TS, and the difference between their moving variance, given some lag. 
+The results were MSE optimized but didn't all pass the t-test. There were many mistaken detections when the threshold are made small due to the MSE optimization.
+
+2.1.2 Adaptive model
+In order to cope with these problems, I devise an adaptive way to apply the threshold, evaluated by an increment. 
+
+This is inspired by the K-means method in machine learning. I define 2 classes, normal and abnormal, labeled 0, 1. And I first define the 2 centroids as the mean of the TS and mean plus a threshold. 
+
+As looping through the series, I recompute the centroid at each iteration using the mean of the data for identified history normal and abnormal data, respectively. And after the absolute difference comparison between the 2 TS, compare therir distance to the 2 centroids scaled with the probablity of its location with respect to the centroids(probability using normal distribution cdf as approxiation).
+
+There could be 2 types of erraneous detection:
+	1. a normal data recognized as anomaly
+	2. an abnormal data not recognized 
+The code considers both situations and provides a scheme to rectify the threshold once it finds a potential erraneous detection. It produces a score for the confidence of need to adjust the threshold. If the scores reaches the limit, then it scales up the threshold if it finds the wrong abnomaly when the data is normal, or scales down if the opposite.
+And after the scale, it resets the score.
+
+The model constantly adjust the threshold for changing feature of the residuals(because the residuals, as mentioned, has a distribution unkown). A plot of comparison between the original model and the modified shows the improvement of the latter.
+
+2.2 Find the best parameters
+The parameters defined in the method are the threshold and its increment. Looping through the values of them to look for one combination that passes the t-test for the detected anomaly and results in the minimal MSE in the normal data.
+
+The following are results returned for the first 5 files. Note the first value is minimal MSE, the second best threshold, and the third increment.
+
+[3.7468079303649567e-07, 0.5, 0.10000000000000001]
+[2.9693260693543445e-05, 0.5, 0.10000000000000001]
+[7.1667605334350981e-09, 0.5, 0.10000000000000001]
+[5.1776334752068974e-08, 0.5, 0.20000000000000001]
+[2.7761518898796112e-06, 0.5, 0.10000000000000001]
+
+
+2.3 Test the testing data set
+At this stage, the assumption I made - by removing the anomaly data points I would arrive at two almost equal TS with some level of confidence, would be tested. This is done via a t-test.
+
+
+
+
+
+
+
+
+
