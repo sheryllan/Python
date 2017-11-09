@@ -14,4 +14,4 @@ if __name__ == '__main__':
     install('statsmodels')
     install('matplotlib')
     install('scipy')
-    
+

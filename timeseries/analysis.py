@@ -59,8 +59,9 @@ for i in xrange(3):
 
 recv = pre.normalize_data(recv)
 exch = pre.normalize_data(exch)
-plt.plot(recv)
-plt.plot(exch)
+plt.plot(recv, label='recv')
+plt.plot(exch, label='exch', color='red')
+plt.legend(loc='lower right')
 plt.title('Time series after normalization')
 plt.show()
 
