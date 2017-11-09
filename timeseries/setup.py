@@ -13,3 +13,5 @@ if __name__ == '__main__':
     install('pandas')
     install('statsmodels')
     install('matplotlib')
+    install('scipy')
+    

@@ -28,9 +28,9 @@ def try_parse(s):
 
 def get_time_series(path):
     data_frame = read_csv(path)
-    recv, exch = zip(*[(long(r), long(e)) for r, e in zip(data_frame.recv, data_frame.exch) \
-                       if not (math.isnan(try_parse(r)) or math.isnan(try_parse(e)))])
-    return recv, exch
+    col1, col2 = zip(*[(long(c1), long(c2)) for c1, c2 in zip(data_frame[column1].values, data_frame[column2].values)
+                       if not (math.isnan(try_parse(c1)) or math.isnan(try_parse(c2)))])
+    return col1, col2
 
 
 def normalize_data(data):
@@ -38,7 +38,3 @@ def normalize_data(data):
     std = np.std(data)
     return [(d - mean) / std for d in data]
 
-
-def scale_up(data, val):
-    val = abs(val)
-    return [d + val for d in data]

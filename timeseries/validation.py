@@ -3,9 +3,6 @@ import numpy as np
 import scipy.stats as stats
 import math
 
-op_threshold = 0.5
-op_increment = 0.1
-
 
 def prob(x):
     x = abs(x)
@@ -61,21 +58,30 @@ def detect_anomaly_adaptive(expected, actual, threshold, increment):
         yield (i, label)
 
 
-def test(fnums):
+def get_best_params(fnums):
+    best = {}
     for i in fnums:
         file_path = pre.get_all_data_files()[i]
         recv, exch = pre.get_time_series(file_path)
         recv = pre.normalize_data(recv)
         exch = pre.normalize_data(exch)
+        best[i] = [float('inf'), -1, -1]
+        residuals = [y - x for y, x in zip(recv, exch)]
+        for threshold in np.arange(0.5, 3.1, 0.2):
+            for increment in np.arange(0.1, 1.1, 0.1):
+                anom_indices = [x[0] for x in detect_anomaly_adaptive(recv, exch, threshold, increment) if x[1]]
+                norm_indices = [x[0] for x in detect_anomaly_adaptive(recv, exch, threshold, increment) if not x[1]]
 
-        norm_indices = [x[0] for x in detect_anomaly_adaptive(recv, exch, op_threshold, op_increment) if not x[1]]
+                anomalies = [exch[ind] for ind in anom_indices]
+                normal = [recv[ind] for ind in norm_indices]
 
-        actual = [exch[ind] for ind in norm_indices]
-        expected = [recv[ind] for ind in norm_indices]
+                t_test = stats.ttest_ind(normal, anomalies, equal_var=False)
+                if t_test[0] >= t_test[1]:
+                    mse = np.mean([residuals[a] ** 2 for a in anom_indices])
+                    if mse < best[i][0]:
+                        best[i] = [mse, threshold, increment]
+        print best[i]
+    return best
 
-        t_test = stats.ttest_ind(actual, expected, equal_var=False)
-        print t_test
-        print t_test[0] < t_test[1]
 
-
-test([5, 6, 7, 8, 9])
+print get_best_params([0, 1, 2, 3, 4])
