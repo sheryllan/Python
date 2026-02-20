@@ -84,7 +84,7 @@ class ClientAPI:
         drawdown_begin_idx = prices_cummax.loc[:max_drawdown_idx].idxmax()
         drawdown_begin_date = timeseries.loc[drawdown_begin_idx, 'date']
         
-        return max_drawdown_dates, max_drawdown_start_dates
+        return max_drawdown_date, drawdown_begin_date
         
 
     def calculate_sharpe_ratio(self, prices: pd.Series, risk_free_rate: float = 0.0, 

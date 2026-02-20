@@ -52,7 +52,35 @@ def print_filesys_recursive(path):
 
     print(f'{path} - folder')
 
+
+def print_filesys_memo(root: str):
+    if isfile(root):
+        print(f'{root} - file')
+        return
+
+    stack = [root]
+    has_seen = set()
+    while stack:
+        path = stack.pop()
+        if isfile(path):
+            print(f'{path} - file')
+        elif path not in has_seen:
+            stack.append(path)
+            has_seen.add(path)
+            sub_folders = []
+            for content in os.listdir(path):
+                full_path = join(path, content)
+                if isfile(full_path):
+                    stack.append(full_path)
+                else:
+                    sub_folders.append(full_path)
+            stack.extend(sub_folders)
+        else:
+            print(f'{path} - folder')
+
+
     
 if __name__ == '__main__':
     # print_filesys('/Users/sheryllan/Interviews/Java')
-    print_filesys_recursive('/Users/sheryllan/Interviews/Java')
+    print_filesys_memo('/Users/sheryllan/Interviews/Java')
+    # print_filesys_recursive('/Users/sheryllan/Interviews/Java')

@@ -4,7 +4,7 @@
 import os
 import tempfile
 import shutil
-from print_filesys import print_filesys, print_filesys_recursive
+from print_filesys import print_filesys, print_filesys_recursive, print_filesys_memo
 from unittest.mock import patch
 
 def create_test_structure():
@@ -59,7 +59,9 @@ def test_print_filesys_recursive(mock_listdir, mock_isdir, mock_isfile):
         'temp/2024/01/15': ['daily_report3.txt'],
     }
     mock_listdir.side_effect = lambda path: directory_map[path]
-    print_filesys_recursive('temp')
+    # print_filesys_recursive('temp')
+    print_filesys_memo('temp')
+
 
 
 if __name__ == '__main__':
