@@ -2,9 +2,11 @@ from numpy import str_
 import pandas as pd
 import requests
 import logging
-from datetime import date
+from datetime import datetime
 from enum import Enum
 import numpy as np
+import asyncio
+import aiohttp
 
 
 logging.basicConfig(level=logging.INFO)
@@ -19,18 +21,37 @@ class Product(str, Enum):
 class ClientAPI:
 
     BASE_URL = 'https://api.example.com'
+    TIMEOUT_SECONDS = 10
+
+    def _normalize_dates(self, start_date: str, end_date: str) -> tuple[str, str]:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        except ValueError:
+            logger.error('Invalid date format')
+            raise ValueError('Invalid date format')
+        if start_dt > end_dt:
+            raise ValueError('start_date must be <= end_date')
+        return start_dt.strftime('%Y-%m-%d'), end_dt.strftime('%Y-%m-%d')
+
+    def _build_dataframe(self, data: dict | list[dict]) -> pd.DataFrame:
+        df = pd.DataFrame(data)
+        date_col = 'date'
+        if date_col not in df.columns:
+            raise ValueError(f'Date column {date_col} not found in response')
+
+        df[date_col] = pd.to_datetime(df[date_col], errors='coerce')
+        if df[date_col].isna().sum() > 0:
+            raise ValueError(f'Date column {date_col} has NaN values')
+
+        return df.sort_values(date_col).reset_index(drop=True)
 
     def get_metrics(self, start_date: str, end_date: str, product_name: str, metrics: list[str]):
         if not metrics:
             logger.error('Metrics list cannot be empty')
             raise ValueError("Metrics list cannot be empty")
 
-        try:
-            start_date = date.strptime(start_date, '%Y-%m-%d').strftime('%Y-%m-%d')
-            end_date = date.strptime(end_date, '%Y-%m-%d').strftime('%Y-%m-%d')
-        except ValueError:
-            logger.error('Invalid date format')
-            raise ValueError('Invalid date format')
+        start_date, end_date = self._normalize_dates(start_date, end_date)
         
         payload = {
             'start_date': start_date,
@@ -40,7 +61,11 @@ class ClientAPI:
         }
 
         try:
-            response = requests.post(self.BASE_URL, data=payload)
+            response = requests.post(
+                self.BASE_URL,
+                json=payload,
+                timeout=self.TIMEOUT_SECONDS,
+            )
             response.raise_for_status()
            
         except requests.exceptions.RequestException as e:
@@ -48,19 +73,49 @@ class ClientAPI:
             logger.error(f'Failed to get metrics: {e}')
             raise
 
-        data = response.json()
+        try:
+            data = response.json()
+        except ValueError as e:
+            logger.error(f'Invalid JSON response: {e}')
+            raise ValueError('Invalid JSON response')
 
-        df = pd.DataFrame(data)
-        date_col = 'date'
-        if date_col not in df.columns:
-            raise ValueError(f'Date column {date_col} not found in response')
+        if isinstance(data, dict) and data.get('error'):
+            raise ValueError(f"API error: {data.get('error')}")
 
-        df[date_col] = pd.to_datetime(df[date_col])
-        if df[date_col].isna().sum() > 0:
-            raise ValueError(f'Date column {date_col} has NaN values')
+        return self._build_dataframe(data)
 
-        df = df.sort_values(date_col).reset_index(drop=True)
-        return df
+    async def get_metrics_async(self, start_date: str, end_date: str, product_name: str, metrics: list[str]):
+        if not metrics:
+            logger.error('Metrics list cannot be empty')
+            raise ValueError("Metrics list cannot be empty")
+
+        start_date, end_date = self._normalize_dates(start_date, end_date)
+
+        payload = {
+            'start_date': start_date,
+            'end_date': end_date,
+            'product_name': product_name,
+            'metrics': metrics
+        }
+
+        timeout = aiohttp.ClientTimeout(total=self.TIMEOUT_SECONDS)
+        try:
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(self.BASE_URL, json=payload) as response:
+                    response.raise_for_status()
+                    try:
+                        data = await response.json()
+                    except aiohttp.ContentTypeError as e:
+                        logger.error(f'Invalid JSON response: {e}')
+                        raise ValueError('Invalid JSON response')
+        except aiohttp.ClientError as e:
+            logger.error(f'Failed to get metrics (async): {e}')
+            raise
+
+        if isinstance(data, dict) and data.get('error'):
+            raise ValueError(f"API error: {data.get('error')}")
+
+        return self._build_dataframe(data)
 
 
     def get_implied_GBPUSD_rate(self, start_date: str, end_date: str):
